@@ -1,0 +1,32 @@
+SELECT cust_id,
+       max_consecutive_days
+FROM   (SELECT cust_id,
+               max_consecutive_days,
+               Row_number()
+                 OVER(
+                   partition BY cust_id, max_consecutive_days
+                   ORDER BY cust_id) AS row1
+        FROM   (SELECT cust_id,
+                       Max(max1)
+                         OVER (
+                           partition BY cust_id
+                           ORDER BY cust_id ) AS Max_Consecutive_Days
+                FROM   (SELECT cust_id,
+                               calendar_dt,
+                               Count(val)
+                                 OVER (
+                                   partition BY cust_id, val
+                                   ORDER BY cust_id, calendar_dt ) AS max1
+                        FROM   (SELECT cust_id,
+                                       calendar_dt,
+                                       ( calendar_dt - ranking ) AS val
+                                FROM   (SELECT cust_id,
+                                               calendar_dt,
+                                               Row_number()
+                                                 OVER (
+                                                   partition BY cust_id
+                                                   ORDER BY cust_id, calendar_dt
+                                                 ) AS
+                                               ranking
+                                        FROM   case3)))))
+WHERE  row1 = 1 

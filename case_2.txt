@@ -1,0 +1,50 @@
+SELECT cust_id,
+       month_start_dt,
+       month_base_flag,
+       CASE
+         WHEN SUM(countno)
+                over(
+                  PARTITION BY cust_id
+                  ORDER BY cust_id ROWS BETWEEN 1 preceding AND CURRENT ROW) = 2
+       THEN
+         'b'
+         WHEN SUM(countno)
+                over(
+                  PARTITION BY cust_id
+                  ORDER BY cust_id ROWS BETWEEN unbounded preceding AND 1
+                preceding ) =
+              1
+              AND SUM(countno)
+                    over(
+                      PARTITION BY cust_id
+                      ORDER BY cust_id ROWS BETWEEN CURRENT ROW AND CURRENT ROW
+                    ) = 1
+       THEN 'r'
+         WHEN SUM(countno)
+                over(
+                  PARTITION BY cust_id
+                  ORDER BY cust_id ROWS BETWEEN 1 preceding AND 1 preceding ) =
+              1 THEN
+         'o'
+         WHEN firstval IS NOT NULL THEN 'I'
+       END AS IBRO_SEGMENT
+FROM   (SELECT cust_id,
+               month_start_dt,
+               month_base_flag,
+               First_value(month_base_flag ignore nulls)
+                 over (
+                   PARTITION BY cust_id
+                   ORDER BY cust_id ROWS BETWEEN CURRENT ROW AND CURRENT ROW )
+               AS
+                      firstval,
+               Count(month_base_flag)
+                 over (
+                   PARTITION BY cust_id, month_start_dt
+                   ORDER BY cust_id, month_start_dt ROWS BETWEEN CURRENT ROW AND
+                 1
+                 following )
+               AS
+                      countno
+        FROM   case2
+        ORDER  BY cust_id,
+                  month_start_dt) 

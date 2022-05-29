@@ -1,0 +1,40 @@
+SELECT cust_id,
+       calendar_dt,
+       amt_le,
+       total,
+       mycase,
+       daydiff,
+       Avg(daydiff)
+         over(
+           PARTITION BY cust_id)
+FROM  (SELECT cust_id,
+              calendar_dt,
+              amt_le,
+              total,
+              mycase,
+              SUM(CASE
+                    WHEN mycase IS NULL THEN 1
+                    ELSE 0
+                  END)
+                over(
+                  PARTITION BY cust_id) AS daydiff
+       FROM  (SELECT cust_id,
+                     calendar_dt,
+                     amt_le,
+                     total,
+                     CASE
+                       WHEN total > 250 THEN 1
+                     END AS mycase
+              FROM   (SELECT cust_id,
+                             calendar_dt,
+                             amt_le,
+                             SUM(amt_le)
+                               over (
+                                 PARTITION BY cust_id
+                                 ORDER BY calendar_dt ROWS BETWEEN unbounded
+                               preceding
+                               AND
+                               CURRENT
+                               ROW) AS
+                             total
+                      FROM   case3))) 

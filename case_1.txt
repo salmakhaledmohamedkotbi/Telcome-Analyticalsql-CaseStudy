@@ -1,0 +1,73 @@
+SELECT calendar_dt,
+       cust_id,
+       value
+FROM   (SELECT calendar_dt,
+               cust_id,
+               value,
+               Row_number()
+                 over(
+                   PARTITION BY calendar_dt, cust_id, mvm_status
+                   ORDER BY cust_id) AS row1
+        FROM   (SELECT calendar_dt,
+                       cust_id,
+                       mvm_status,
+                       First_value(mvm_status ignore nulls)
+                         over(
+                           PARTITION BY calendar_dt, cust_id, mvm_status
+                           ORDER BY cust_id) AS value
+                FROM   (SELECT calendar_dt,
+                               cust_id,
+                               y,
+                               CASE
+                                 WHEN y = 0THEN 'N'
+                                 WHEN y > 0
+                                      AND y < 1 THEN 'U'
+                                 WHEN y > 1 THEN 'HU'
+                                 WHEN y < 0
+                                      AND y >- 1 THEN 'R'
+                                 WHEN y >- 2
+                                      AND y <- 1 THEN 'HR'
+                               END AS MVM_STATUS
+                        FROM   (SELECT calendar_dt,
+                                       cust_id,
+                                       CASE
+                                         WHEN stdd > 0 THEN ( lastvalue - avg )
+                                                            / stdd
+                                       END AS y
+                                FROM   (SELECT calendar_dt,
+                                               cust_id,
+                                               recharge_dt,
+                                               recharge_amt_num,
+                                               lastvalue,
+                                               Round(Avg(daily_revenue)
+                                                       over(
+                                                         PARTITION BY cust_id),
+                                               2) AS
+                                               avg,
+                                               Round(STDDEV(daily_revenue)
+                                                       over(
+                                                         PARTITION BY cust_id),
+                                               2) AS
+                                               STDD
+                                        FROM   (SELECT calendar_dt,
+                                                       cust_id,
+                                                       recharge_dt,
+                                                       recharge_amt_num,
+                                                       recharge_amt_num / (
+                                                       Lead(recharge_dt, 1)
+                                                       over(
+                                                         PARTITION BY cust_id
+                                                         ORDER BY cust_id,
+                                                       recharge_dt
+                                                       )  - recharge_dt ) AS
+       daily_revenue,
+       recharge_amt_num / ( calendar_dt -
+       Last_value(recharge_dt
+       ignore
+       nulls)
+       over(
+       PARTITION BY cust_id
+       ORDER BY cust_id ) )
+       AS lastvalue
+       FROM   case1))))))
+WHERE  row1 = 1 
